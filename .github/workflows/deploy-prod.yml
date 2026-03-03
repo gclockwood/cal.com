@@ -1,0 +1,73 @@
+name: Deploy to fly.io (prod)
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  build:
+    name: Build & push image
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      sha: ${{ steps.sha.outputs.short }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get short SHA
+        id: sha
+        run: echo "short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/cal.com:${{ steps.sha.outputs.short }}
+            ghcr.io/${{ github.repository_owner }}/cal.com:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_WEBAPP_URL=${{ vars.NEXT_PUBLIC_WEBAPP_URL }}
+            NEXT_PUBLIC_API_V2_URL=${{ vars.NEXT_PUBLIC_API_V2_URL }}
+            CALCOM_TELEMETRY_DISABLED=1
+            NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
+            CALENDSO_ENCRYPTION_KEY=${{ secrets.CALENDSO_ENCRYPTION_KEY }}
+            DATABASE_URL=${{ secrets.BUILD_DATABASE_URL }}
+            ORGANIZATIONS_ENABLED=${{ vars.ORGANIZATIONS_ENABLED }}
+            NEXT_PUBLIC_SINGLE_ORG_SLUG=${{ vars.NEXT_PUBLIC_SINGLE_ORG_SLUG }}
+
+  deploy:
+    name: Deploy to fly.io
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy
+        run: |
+          flyctl deploy \
+            --app cal-com-halftide \
+            --image ghcr.io/${{ github.repository_owner }}/cal.com:${{ needs.build.outputs.sha }} \
+            --strategy rolling
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
