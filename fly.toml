@@ -24,7 +24,7 @@ primary_region = "ewr"
     grace_period = "120s"
     interval = "30s"
     method = "GET"
-    path = "/"
+    path = "/auth/login"
     protocol = "http"
     timeout = "10s"
 
