@@ -17,5 +17,8 @@ if [ -z "$FLY_APP_NAME" ]; then
   fi
 fi
 
-# next start does not read HOSTNAME from env — pass explicitly via -H
-exec yarn workspace @calcom/web next start -H "${HOSTNAME:-0.0.0.0}" -p "${PORT:-3000}"
+# Fly.io uses IPv6 internally (fdaa:... addresses). Binding to :: creates a
+# dual-stack socket that accepts both IPv4 and IPv6 connections.
+# Binding to 0.0.0.0 would only listen on IPv4, causing Fly health checks
+# to get "connection refused" on IPv6.
+exec yarn workspace @calcom/web next start -H "${HOSTNAME:-::}" -p "${PORT:-3000}"
