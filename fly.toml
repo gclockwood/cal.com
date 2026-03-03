@@ -5,7 +5,7 @@ primary_region = "ewr"
   image = "ghcr.io/gclockwood/cal.com:latest"
 
 [deploy]
-  release_command = "npx prisma migrate deploy --schema /calcom/packages/prisma/schema.prisma && npx ts-node --transpile-only /calcom/scripts/seed-app-store.ts"
+  release_command = "/bin/sh -c 'npx prisma migrate deploy --schema /calcom/packages/prisma/schema.prisma && npx ts-node --transpile-only /calcom/scripts/seed-app-store.ts'"
 
 [env]
   PORT = "3000"

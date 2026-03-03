@@ -7,9 +7,6 @@ ARG NEXT_PUBLIC_LICENSE_CONSENT
 ARG NEXT_PUBLIC_WEBSITE_TERMS_URL
 ARG NEXT_PUBLIC_WEBSITE_PRIVACY_POLICY_URL
 ARG CALCOM_TELEMETRY_DISABLED
-ARG DATABASE_URL
-ARG NEXTAUTH_SECRET=secret
-ARG CALENDSO_ENCRYPTION_KEY=secret
 ARG MAX_OLD_SPACE_SIZE=6144
 ARG NEXT_PUBLIC_API_V2_URL
 ARG CSP_POLICY
@@ -24,10 +21,6 @@ ENV NEXT_PUBLIC_WEBAPP_URL=http://NEXT_PUBLIC_WEBAPP_URL_PLACEHOLDER \
   NEXT_PUBLIC_WEBSITE_TERMS_URL=$NEXT_PUBLIC_WEBSITE_TERMS_URL \
   NEXT_PUBLIC_WEBSITE_PRIVACY_POLICY_URL=$NEXT_PUBLIC_WEBSITE_PRIVACY_POLICY_URL \
   CALCOM_TELEMETRY_DISABLED=$CALCOM_TELEMETRY_DISABLED \
-  DATABASE_URL=$DATABASE_URL \
-  DATABASE_DIRECT_URL=$DATABASE_URL \
-  NEXTAUTH_SECRET=${NEXTAUTH_SECRET} \
-  CALENDSO_ENCRYPTION_KEY=${CALENDSO_ENCRYPTION_KEY} \
   NEXT_PUBLIC_SINGLE_ORG_SLUG=$NEXT_PUBLIC_SINGLE_ORG_SLUG \
   ORGANIZATIONS_ENABLED=$ORGANIZATIONS_ENABLED \
   NODE_OPTIONS=--max-old-space-size=${MAX_OLD_SPACE_SIZE} \
@@ -47,7 +40,14 @@ RUN yarn install
 RUN yarn workspace @calcom/trpc run build
 RUN yarn --cwd packages/embeds/embed-core workspace @calcom/embed-core run build
 RUN yarn --cwd apps/web workspace @calcom/web run copy-app-store-static
-RUN yarn --cwd apps/web workspace @calcom/web run build
+RUN --mount=type=secret,id=NEXTAUTH_SECRET \
+    --mount=type=secret,id=CALENDSO_ENCRYPTION_KEY \
+    --mount=type=secret,id=DATABASE_URL \
+    NEXTAUTH_SECRET=$(cat /run/secrets/NEXTAUTH_SECRET) \
+    CALENDSO_ENCRYPTION_KEY=$(cat /run/secrets/CALENDSO_ENCRYPTION_KEY) \
+    DATABASE_URL=$(cat /run/secrets/DATABASE_URL) \
+    DATABASE_DIRECT_URL=$(cat /run/secrets/DATABASE_URL) \
+    yarn --cwd apps/web workspace @calcom/web run build
 RUN rm -rf node_modules/.cache .yarn/cache apps/web/.next/cache
 
 FROM node:20 AS builder-two
