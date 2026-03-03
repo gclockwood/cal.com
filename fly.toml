@@ -5,12 +5,13 @@ primary_region = "ewr"
   image = "ghcr.io/gclockwood/cal.com:latest"
 
 [deploy]
-  release_command = "npx prisma migrate deploy --schema /calcom/packages/prisma/schema.prisma"
+  release_command = "npx prisma migrate deploy --schema /calcom/packages/prisma/schema.prisma && npx ts-node --transpile-only /calcom/scripts/seed-app-store.ts"
 
 [env]
   PORT = "3000"
   NODE_ENV = "production"
-  NEXT_PUBLIC_WEBAPP_URL = "https://cal-com-halftide.fly.dev"
+  NEXT_PUBLIC_WEBAPP_URL = "https://cal.cstl.io"
+  SKIP_APP_STORE_SEED = "1"
 
 [http_service]
   internal_port = 3000
